@@ -80,10 +80,6 @@ int main(int argc, char *argv[])
     if(strcmp(mode, "--CBC") == 0) {
         CbcDES(stream, mode, cipher, rounds, key);
     }
-
-    if(strcmp(mode, "--CTR") == 0) {
-        CtrDES(stream, mode, cipher, rounds, key);
-    }
 }
 
 void printBlock(uint16_t block)
@@ -335,84 +331,6 @@ void CbcDES(Stream *stream, char *mode, char *cipher, int rounds, uint16_t key)
     }
 
     printBlockList(blockList, stream->length);
-}
-
-void CtrDES(Stream *stream, char *mode, char *cipher, int rounds, uint16_t key)
-{
-    int ivType,i,j,c=0,r1,r2,r3,r4;;
-    char ra1[2],ra2[2],ra3[2],ra4[2];
-    uint16_t nonce;
-
-if((strcmp(cipher, "--enc") == 0)){
-      srand(time(NULL));
-      r1 = (int) (rand() / (double) (RAND_MAX )*2);
-      r2 = (int) (rand() / (double) (RAND_MAX )*2);
-      r3 = (int) (rand() / (double) (RAND_MAX )*2);
-      r4 = (int) (rand() / (double) (RAND_MAX )*2);
-      printf("\n nonce iv (for decryption): %d%d%d%d\n",r1,r2,r3,r4);
-
-      sprintf(ra1,"%d",r1);
-      sprintf(ra2,"%d",r2);
-      sprintf(ra3,"%d",r3);
-      sprintf(ra4,"%d",r4);
-      strcat(ra1,ra2);
-      strcat(ra3,ra4);
-      strcat(ra1,ra3);
-
-      nonce = atoi(ra1);
- } else if((strcmp(cipher, "--dec") == 0)){
-	printf("\nplease enter nonce generated IV used from encryption: ");
-	scanf("%u", &nonce);
-	}
-    long numberBits = stream->length * BYTE;
-    long numBlocks = 0;
-
-    if(numberBits % 12 == 0)
-        numBlocks = numberBits / 12;
-    else
-        numBlocks = (numberBits / 12) + 1;
-
-    BlockList *blockList = assembleBlockList(stream, numBlocks);
-
-    for(i = 0; i < blockList->length; i++) {
-        uint16_t block = blockList->blockList[i];
-	if(i>0){nonce++;}
-	printf("%d\n",nonce);
-          for(j = 1; j <= rounds; j++) {
-
-              int roundNum = (strcmp(cipher, "--dec") == 0) ? (rounds - j + 1) : j;
-              unsigned char roundKey = generateRoundKey(key, roundNum);
-              unsigned char left = BLOCK_SET_LOW;
-              unsigned char right = BLOCK_SET_LOW;
-              unsigned char temp = 0;
-
-              left &= (nonce>> 6);
-              temp = left;
-              right &= nonce;
-              left = right;
-              right = expand(right);
-              right ^= roundKey;
-
-              unsigned char s1Res = s1Box(right);
-              unsigned char s2Res = s2Box(right);
-
-              right = (s1Res << 3) | s2Res;
-              right ^= temp;
-
-              uint16_t newBlock = right;
-              newBlock <<= 6;
-              newBlock |= left;
-              block = newBlock;
-	      blockList->blockList[i] ^= block;
-
-
-              ;
-          }
-      }
-
-    int len = stream->length;
-    printBlockList(blockList, len);
-    printf("\n");
 }
 
 unsigned char generateRoundKey(uint16_t key, int roundNum)
